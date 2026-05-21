@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>StockCount Pro</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+:root{
+  --bg:#08090c;--s1:#0f1015;--s2:#16171e;--s3:#1e1f28;--s4:#252632;
+  --bd:#2a2b38;--bd2:#363748;
+  --tx:#e8e9f0;--tx2:#8a8ba8;--tx3:#52536a;
+  --ac:#4f8ef7;--ac2:#7aabff;--ac-d:rgba(79,142,247,.14);
+  --gr:#10b981;--gr-d:rgba(16,185,129,.12);
+  --am:#f59e0b;--am-d:rgba(245,158,11,.12);
+  --rd:#f43f5e;--rd-d:rgba(244,63,94,.12);
+  --pu:#8b5cf6;--pu-d:rgba(139,92,246,.12);
+  --tl:#14b8a6;--tl-d:rgba(20,184,166,.12);
+  --r:14px;--rs:9px;
+  --ff:'DM Sans',system-ui,sans-serif;
+  --fm:'DM Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:var(--ff);background:var(--bg);color:var(--tx);min-height:100vh;font-size:14px;overflow-x:hidden}
+input,select,textarea,button{font-family:var(--ff)}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:var(--s2)}::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:4px}
+
+#loading{position:fixed;inset:0;background:var(--bg);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+.load-logo{font-size:28px;font-weight:700;background:linear-gradient(135deg,var(--ac),var(--pu));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.load-spin{width:28px;height:28px;border:2.5px solid var(--bd2);border-top-color:var(--ac);border-radius:50%;animation:spin .8s linear infinite}
+.load-text{font-size:12px;color:var(--tx3)}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.nav{background:var(--s1);border-bottom:1px solid var(--bd);height:52px;display:flex;align-items:center;padding:0 14px;gap:10px;position:sticky;top:0;z-index:100}
+.logo{font-size:17px;font-weight:700;letter-spacing:-.5px;background:linear-gradient(135deg,var(--ac2),var(--pu));-webkit-background-clip:text;-webkit-text-fill-color:transparent;white-space:nowrap}
+.branch-sel{background:var(--s3);border:1px solid var(--bd);border-radius:var(--rs);padding:5px 8px;color:var(--tx);font-size:12px;flex:1;max-width:155px;appearance:none}
+.nav-tabs{display:flex;gap:2px;background:var(--s2);border-radius:var(--rs);padding:3px;margin-left:auto}
+.ntab{padding:5px 10px;border-radius:7px;border:none;background:transparent;color:var(--tx2);font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;white-space:nowrap}
+.ntab.on{background:var(--ac);color:#fff}
+.nbadge{background:var(--rd);color:#fff;font-size:9px;font-weight:700;padding:1px 4px;border-radius:8px;margin-left:2px}
+
+.page{display:none;min-height:calc(100vh - 52px)}
+.page.on{display:block}
+.ph{padding:18px 14px 12px}
+.ph h1{font-size:22px;font-weight:700;letter-spacing:-.5px}
+.ph p{color:var(--tx2);font-size:12px;margin-top:4px}
+.card{background:var(--s1);border:1px solid var(--bd);border-radius:var(--r);padding:14px}
+.gap-stack{display:flex;flex-direction:column;gap:8px;padding:0 14px}
+
+.pill{font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px}
+.pill-done{background:var(--gr-d);color:var(--gr)}
+.pill-wip{background:var(--am-d);color:var(--am)}
+.pill-todo{background:var(--s4);color:var(--tx3)}
+.pill-info{background:var(--ac-d);color:var(--ac2)}
+
+.mbar{height:3px;background:var(--s3);border-radius:3px;overflow:hidden;margin-top:8px}
+.mbar-fill{height:100%;border-radius:3px;transition:width .6s}
+.mf-g{background:var(--gr)}.mf-a{background:var(--am)}.mf-x{background:var(--bd2)}
+
+.btn{padding:9px 16px;border-radius:var(--rs);border:none;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:7px}
+.btn-primary{background:var(--ac);color:#fff}.btn-primary:hover{background:var(--ac2)}
+.btn-ghost{background:var(--s3);border:1px solid var(--bd);color:var(--tx2)}.btn-ghost:hover{color:var(--tx)}
+.btn:active{transform:scale(.96)}.btn:disabled{opacity:.35;cursor:default;transform:none}
+.btn-full{width:100%;justify-content:center;padding:14px}
+
+.inp{width:100%;background:var(--s2);border:1px solid var(--bd2);border-radius:var(--rs);color:var(--tx);font-size:14px;padding:10px 12px;transition:border-color .2s}
+.inp:focus{outline:none;border-color:var(--ac)}
+select.inp{appearance:none;cursor:pointer}
+.label{font-size:11px;color:var(--tx2);margin-bottom:5px;display:block;font-weight:600;letter-spacing:.3px}
+.fg{margin-bottom:13px}
+
+.loc-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 14px}
+.loc-card{background:var(--s1);border:1px solid var(--bd);border-radius:var(--r);padding:14px 13px;cursor:pointer;transition:all .25s;position:relative;overflow:hidden;user-select:none}
+.loc-card:hover{border-color:var(--ac);background:var(--s2)}
+.loc-card.sel{border-color:var(--ac);background:var(--ac-d)}
+.loc-card:active{transform:scale(.97)}
+.loc-icon{font-size:24px;margin-bottom:8px;display:block}
+.loc-name{font-weight:600;font-size:13px}
+.loc-meta{font-size:11px;color:var(--tx2);margin-top:4px}
+.loc-prog-bar{position:absolute;bottom:0;left:0;height:3px;background:var(--ac);transition:width .5s}
+.loc-badge{position:absolute;top:8px;right:8px;font-size:9px;font-weight:700;padding:2px 6px;border-radius:10px}
+.lb-done{background:var(--gr-d);color:var(--gr)}.lb-wip{background:var(--am-d);color:var(--am)}.lb-todo{background:var(--s4);color:var(--tx3)}
+
+.item-block{background:var(--s2);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden;transition:border-color .3s}
+.item-block.ok{border-color:var(--gr)}
+.item-block.diff{border-color:var(--am)}
+.item-block.partial{border-color:var(--tl)}
+.item-header{display:flex;align-items:center;gap:10px;padding:12px 13px}
+.item-dot{width:7px;height:7px;border-radius:50%;background:var(--bd2);flex-shrink:0;transition:background .3s}
+.item-block.ok .item-dot{background:var(--gr)}.item-block.diff .item-dot{background:var(--am)}.item-block.partial .item-dot{background:var(--tl)}
+.item-name-wrap{flex:1;min-width:0}
+.item-name{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item-sku{font-size:10px;color:var(--tx3);font-family:var(--fm);margin-top:2px}
+.item-total-badge{font-size:11px;font-weight:700;font-family:var(--fm);background:var(--s3);border:1px solid var(--bd2);border-radius:6px;padding:4px 9px;white-space:nowrap;flex-shrink:0;transition:all .3s}
+.item-block.ok .item-total-badge{background:var(--gr-d);border-color:var(--gr);color:var(--gr)}
+.item-block.diff .item-total-badge{background:var(--am-d);border-color:var(--am);color:var(--am)}
+.item-block.partial .item-total-badge{background:var(--tl-d);border-color:var(--tl);color:var(--tl)}
+
+.unit-rows{border-top:1px solid var(--bd)}
+.unit-row{display:flex;align-items:center;gap:8px;padding:8px 13px;border-bottom:1px solid var(--bd)}
+.unit-row:last-child{border-bottom:none}
+.unit-label-wrap{width:85px;flex-shrink:0}
+.unit-label{font-size:12px;font-weight:600;color:var(--tx)}
+.unit-conv{font-size:10px;color:var(--tx3);margin-top:2px;font-family:var(--fm)}
+.unit-exp{flex:1;font-size:11px;color:var(--tx3)}
+.qty-wrap{display:flex;align-items:center;gap:4px;flex-shrink:0}
+.qbtn{width:28px;height:28px;border-radius:7px;border:1px solid var(--bd2);background:var(--s3);color:var(--tx);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;line-height:1}
+.qbtn:active{transform:scale(.85)}
+.qinp{width:48px;height:28px;text-align:center;background:var(--s3);border:1px solid var(--bd2);border-radius:7px;color:var(--tx);font-size:13px;font-weight:700;font-family:var(--fm)}
+.qinp:focus{outline:none;border-color:var(--ac)}
+
+.form-panel{background:var(--s1);border-top:1px solid var(--bd);border-radius:20px 20px 0 0;margin-top:10px;padding:20px 14px;padding-bottom:100px}
+.sbar{display:flex;align-items:center;gap:8px;background:var(--s2);border:1px solid var(--bd);border-radius:var(--rs);padding:8px 12px}
+.sbar input{flex:1;background:none;border:none;color:var(--tx);font-size:13px}
+.sbar input:focus{outline:none}
+.sbar input::placeholder{color:var(--tx3)}
+
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 14px}
+.stat{background:var(--s1);border:1px solid var(--bd);border-radius:var(--r);padding:14px}
+.stat-val{font-size:26px;font-weight:700;line-height:1;letter-spacing:-1px}
+.stat-lbl{font-size:11px;color:var(--tx2);margin-top:6px}
+.sv-b{color:var(--ac)}.sv-g{color:var(--gr)}.sv-a{color:var(--am)}
+
+.prog-wrap{padding:0 14px 16px}
+.prog-lbl{display:flex;justify-content:space-between;font-size:12px;color:var(--tx2);margin-bottom:8px}
+.prog-bar{height:7px;background:var(--s2);border-radius:7px;overflow:hidden}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--ac),var(--gr));border-radius:7px;transition:width 1.2s}
+
+.ptabs{display:flex;border-bottom:1px solid var(--bd);padding:0 14px}
+.ptab{padding:10px 14px;font-size:12px;font-weight:600;color:var(--tx2);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s}
+.ptab.on{color:var(--ac);border-bottom-color:var(--ac)}
+
+.emp-card{background:var(--s1);border:1px solid var(--bd);border-radius:var(--r);padding:13px 14px;display:flex;align-items:center;gap:12px}
+.emp-av{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0}
+.emp-info{flex:1;min-width:0}
+.emp-name{font-weight:600;font-size:13px}
+.emp-meta{font-size:11px;color:var(--tx2);margin-top:3px}
+.emp-stat{text-align:right;flex-shrink:0}
+.emp-num{font-size:20px;font-weight:700;letter-spacing:-.5px}
+.emp-num-lbl{font-size:10px;color:var(--tx3);margin-top:1px}
+
+.log-item{background:var(--s1);border-left:3px solid var(--ac);border-radius:0 var(--rs) var(--rs) 0;padding:10px 12px;margin-bottom:7px}
+.log-top{display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px}
+.log-who{font-weight:700;color:var(--ac2)}
+.log-time{color:var(--tx3);font-family:var(--fm)}
+.log-text{font-size:12px;color:var(--tx2)}
+
+.tbl-wrap{overflow-x:auto;padding:0 14px}
+.tbl{width:100%;font-size:12px;border-collapse:collapse;min-width:360px}
+.tbl th{text-align:left;padding:8px 10px;background:var(--s2);color:var(--tx3);font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;border-bottom:1px solid var(--bd)}
+.tbl td{padding:9px 10px;border-bottom:1px solid var(--bd);color:var(--tx);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:var(--s2)}
+
+.upload-zone{border:2px dashed var(--bd2);border-radius:var(--r);padding:28px;text-align:center;cursor:pointer;transition:all .25s;background:var(--s2)}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--ac);background:var(--ac-d)}
+.uz-icon{font-size:36px;margin-bottom:10px}
+.uz-title{font-weight:700;font-size:15px;margin-bottom:6px}
+.uz-sub{font-size:12px;color:var(--tx2);line-height:1.5}
+
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:300;align-items:flex-end;justify-content:center}
+.modal-bg.on{display:flex;animation:fadein .2s}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+.modal{background:var(--s1);border-radius:22px 22px 0 0;padding:20px 16px 44px;width:100%;max-height:88vh;overflow-y:auto;animation:slideup .25s ease}
+@keyframes slideup{from{transform:translateY(60px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center}
+.modal-close{background:var(--s3);border:none;color:var(--tx2);font-size:18px;cursor:pointer;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+@media(min-width:600px){.modal{max-width:500px;border-radius:16px;margin-bottom:40px}.modal-bg.on{align-items:center}.loc-grid{grid-template-columns:repeat(3,1fr)}.stat-grid{grid-template-columns:repeat(4,1fr)}}
+
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--s1);border:1px solid var(--bd2);color:var(--tx);padding:11px 20px;border-radius:30px;font-size:13px;font-weight:600;z-index:999;transition:transform .35s cubic-bezier(.34,1.56,.64,1);white-space:nowrap;pointer-events:none;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+.toast.on{transform:translateX(-50%) translateY(0)}
+.toast.t-ok{border-color:var(--gr);color:var(--gr)}.toast.t-err{border-color:var(--rd);color:var(--rd)}.toast.t-info{border-color:var(--ac);color:var(--ac2)}
+
+.syncing{position:fixed;top:60px;right:12px;background:var(--s2);border:1px solid var(--bd);border-radius:20px;padding:5px 12px;font-size:11px;color:var(--tx2);display:none;align-items:center;gap:6px;z-index:90}
+.syncing.on{display:flex}
+.sync-spin{width:12px;height:12px;border:1.5px solid var(--bd2);border-top-color:var(--ac);border-radius:50%;animation:spin .7s linear infinite}
+
+.conn-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px}
+.conn-ok{background:var(--gr)}.conn-err{background:var(--rd)}
+.empty{text-align:center;padding:40px 20px;color:var(--tx3);font-size:13px}
+.empty-icon{font-size:36px;margin-bottom:10px}
+
+.assign-item{background:var(--s2);border:1px solid var(--bd);border-radius:var(--rs);padding:10px 12px}
+.assign-exp-row{display:none;gap:6px;margin-top:8px;flex-wrap:wrap}
+.assign-exp-col{flex:1;min-width:60px;text-align:center}
+.assign-exp-lbl{font-size:10px;color:var(--tx3);display:block;margin-bottom:3px}
+.assign-exp-inp{width:100%;background:var(--s3);border:1px solid var(--bd2);border-radius:6px;color:var(--tx);font-size:12px;text-align:center;padding:5px;font-family:var(--fm)}
+
+.icon-btn{font-size:22px;background:var(--s2);border:2px solid var(--bd);border-radius:9px;padding:5px 9px;cursor:pointer;transition:all .15s}
+.icon-btn.sel-icon{border-color:var(--ac);background:var(--ac-d)}
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="load-logo">StockCount Pro</div>
+  <div class="load-spin"></div>
+  <div class="load-text" id="load-text">Menghubungkan ke database...</div>
+</div>
+<div class="syncing" id="syncing"><div class="sync-spin"></div><span>Menyimpan...</span></div>
+
+<nav class="nav" style="display:none" id="main-nav">
+  <span class="logo">StockCount</span>
+  <select class="branch-sel inp" id="branch-sel" onchange="onBranchChange()"></select>
+  <div class="nav-tabs">
+    <button class="ntab on" onclick="go('input')">Input</button>
+    <button class="ntab" onclick="go('monitor')">Monitor <span class="nbadge" id="badge-disc" style="display:none">!</span></button>
+    <button class="ntab" onclick="go('admin')">Admin</button>
+  </div>
+</nav>
+
+<!-- INPUT -->
+<div class="page on" id="page-input">
+  <div class="ph"><h1>Pilih Lokasi</h1><p id="input-sub">Tap lokasi untuk mulai input stock opname</p></div>
+  <div class="loc-grid" id="loc-grid"></div>
+  <div class="form-panel" id="form-panel" style="display:none">
+    <div style="font-size:18px;font-weight:700;margin-bottom:4px;letter-spacing:-.4px" id="fp-title"></div>
+    <div style="font-size:12px;color:var(--tx2);margin-bottom:16px" id="fp-sub"></div>
+    <div class="fg">
+      <label class="label">Nama Karyawan</label>
+      <select class="inp" id="emp-sel"><option value="">— Pilih nama kamu —</option></select>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <span style="font-size:11px;font-weight:700;color:var(--tx3);letter-spacing:.8px;text-transform:uppercase">Daftar Barang</span>
+      <span style="font-size:11px;color:var(--tx3);font-family:var(--fm)" id="item-ctr">—</span>
+    </div>
+    <div class="sbar" style="margin-bottom:10px"><span style="color:var(--tx3);font-size:14px">⌕</span><input placeholder="Cari nama / SKU..." id="item-search" oninput="filterItems()"></div>
+    <div id="items-list" style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px"></div>
+    <div class="fg">
+      <label class="label">Catatan (opsional)</label>
+      <textarea class="inp" id="notes-inp" rows="2" placeholder="Kondisi barang, catatan khusus..."></textarea>
+    </div>
+    <button class="btn btn-primary btn-full" id="submit-btn" onclick="submitSO()">✓ Simpan Stock Opname</button>
+  </div>
+</div>
+
+<!-- MONITOR -->
+<div class="page" id="page-monitor">
+  <div class="ph"><h1>Monitor SO</h1><p id="mon-date"></p></div>
+  <div class="stat-grid" id="stat-grid" style="margin-bottom:14px"></div>
+  <div class="prog-wrap">
+    <div class="prog-lbl"><span>Progress hari ini</span><span id="prog-pct">0%</span></div>
+    <div class="prog-bar"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+  </div>
+  <div class="ptabs" id="mon-tabs">
+    <div class="ptab on" onclick="mTab(0,this)">Lokasi</div>
+    <div class="ptab" onclick="mTab(1,this)">Karyawan</div>
+    <div class="ptab" onclick="mTab(2,this)">Log</div>
+  </div>
+  <div style="padding-bottom:80px">
+    <div id="mon-loc"></div>
+    <div id="mon-emp" style="display:none"></div>
+    <div id="mon-log" style="display:none"></div>
+  </div>
+  <div style="padding:0 14px 20px">
+    <button class="btn btn-ghost btn-full" onclick="exportExcel()">⬇ Export Hasil SO ke Excel</button>
+  </div>
+</div>
+
+<!-- ADMIN -->
+<div class="page" id="page-admin">
+  <div class="ph">
+    <h1>Admin Panel</h1>
+    <p><span class="conn-dot" id="conn-dot"></span><span id="conn-text" style="font-size:11px"></span></p>
+  </div>
+  <div class="ptabs">
+    <div class="ptab on" onclick="aTab(0,this)">Upload</div>
+    <div class="ptab" onclick="aTab(1,this)">Barang</div>
+    <div class="ptab" onclick="aTab(2,this)">Lokasi</div>
+    <div class="ptab" onclick="aTab(3,this)">Karyawan</div>
+  </div>
+  <div id="adm-upload" style="padding:14px;display:flex;flex-direction:column;gap:12px">
+    <div class="upload-zone" id="drop-zone" onclick="document.getElementById('file-inp').click()"
+      ondragover="event.preventDefault();this.classList.add('drag')"
+      ondragleave="this.classList.remove('drag')"
+      ondrop="handleDrop(event)">
+      <div class="uz-icon">📊</div>
+      <div class="uz-title">Upload Master Data Excel</div>
+      <div class="uz-sub">Klik atau drag & drop file .xlsx<br>Sheet: Master Barang · Master Karyawan · Cabang & Lokasi</div>
+    </div>
+    <input type="file" id="file-inp" accept=".xlsx" style="display:none" onchange="handleFile(this.files[0])">
+    <div id="upload-result"></div>
+    <button class="btn btn-ghost btn-full" onclick="loadDemoData()">🎯 Load Data Demo</button>
+  </div>
+  <div id="adm-items" style="display:none;padding-bottom:60px">
+    <div style="padding:0 14px 10px"><div class="sbar"><span style="color:var(--tx3);font-size:14px">⌕</span><input placeholder="Cari SKU / nama..." id="adm-srch" oninput="renderAdmItems()"></div></div>
+    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>SKU</th><th>Nama Barang</th><th>Sat. Dasar</th><th>Satuan Jual</th></tr></thead><tbody id="adm-items-body"></tbody></table></div>
+  </div>
+  <div id="adm-locs" style="display:none;padding-bottom:80px">
+    <div class="gap-stack" id="adm-locs-list"></div>
+    <div style="padding:14px"><button class="btn btn-primary btn-full" onclick="openAddLoc()">+ Tambah Lokasi</button></div>
+  </div>
+  <div id="adm-emps" style="display:none;padding-bottom:80px">
+    <div class="gap-stack" id="adm-emps-list"></div>
+    <div style="padding:14px"><button class="btn btn-primary btn-full" onclick="openAddEmp()">+ Tambah Karyawan</button></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal-bg" onclick="if(event.target===this)closeModal()">
+  <div class="modal"><div class="modal-title"><span id="modal-title-text"></span><button class="modal-close" onclick="closeModal()">✕</button></div><div id="modal-body"></div></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const SB_URL='https://bjjbiqfxmtxwhlrjzslr.supabase.co';
+const SB_KEY='sb_publishable_VU2V7udBYfduqlSgYPN-Sg_8_Mzrr2O';
+const H={'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Prefer':'return=representation'};
+
+async function sbGet(t,p=''){const r=await fetch(`${SB_URL}/rest/v1/${t}?${p}`,{headers:H});if(!r.ok)throw new Error(await r.text());return r.json();}
+async function sbPost(t,d){const r=await fetch(`${SB_URL}/rest/v1/${t}`,{method:'POST',headers:H,body:JSON.stringify(d)});if(!r.ok)throw new Error(await r.text());return r.json();}
+async function sbUpsert(t,d){const r=await fetch(`${SB_URL}/rest/v1/${t}`,{method:'POST',headers:{...H,'Prefer':'resolution=merge-duplicates,return=representation'},body:JSON.stringify(d)});if(!r.ok)throw new Error(await r.text());return r.json();}
+async function sbDelete(t,f){const r=await fetch(`${SB_URL}/rest/v1/${t}?${f}`,{method:'DELETE',headers:H});if(!r.ok)throw new Error(await r.text());}
+
+let DB={branches:[],items:[],employees:[],locations:[],locItems:{}};
+let SO_CACHE={};
+let currentBranch='';
+let selectedLoc=null;
+let soDate=new Date().toISOString().slice(0,10);
+
+// ── 4 UNIT HELPERS ──
+function getItemUnits(item){
+  const u=[];
+  if(item.unit1_name&&item.unit1_qty)u.push({name:item.unit1_name,qpb:parseFloat(item.unit1_qty)});
+  if(item.unit2_name&&item.unit2_qty)u.push({name:item.unit2_name,qpb:parseFloat(item.unit2_qty)});
+  if(item.unit3_name&&item.unit3_qty)u.push({name:item.unit3_name,qpb:parseFloat(item.unit3_qty)});
+  if(item.unit4_name&&item.unit4_qty)u.push({name:item.unit4_name,qpb:parseFloat(item.unit4_qty)});
+  if(!u.length)u.push({name:item.base_unit_label||item.unit||'pcs',qpb:1});
+  return u;
+}
+function calcTotal(item,q1,q2,q3,q4){
+  const u=getItemUnits(item);
+  const v=[q1,q2,q3,q4];
+  let t=0;u.forEach((x,i)=>t+=(parseInt(v[i])||0)*x.qpb);
+  return Math.round(t*1000)/1000;
+}
+function calcExpected(item,li){
+  const u=getItemUnits(item);
+  const v=[li.expected_unit1,li.expected_unit2,li.expected_unit3,li.expected_unit4];
+  let t=0;u.forEach((x,i)=>t+=(parseInt(v[i])||0)*x.qpb);
+  return Math.round(t*1000)/1000;
+}
+
+// ── INIT ──
+async function init(){
+  setLoad('Menghubungkan ke database...');
+  try{await loadAll();hideLoad();updateConn(true);renderBranchSel();renderLocGrid();updateBadge();}
+  catch(e){setLoad('⚠ Gagal terhubung. Cek koneksi internet.');console.error(e);updateConn(false);setTimeout(hideLoad,4000);}
+}
+async function loadAll(){
+  const[branches,items,employees,locations,locItems,soResults]=await Promise.all([
+    sbGet('branches','order=name'),
+    sbGet('items','order=name'),
+    sbGet('employees','active=eq.true&order=name'),
+    sbGet('locations','order=branch_id,sort_order'),
+    sbGet('location_items','select=*'),
+    sbGet('so_results',`so_date=eq.${soDate}&select=*`)
+  ]);
+  DB={branches,items,employees,locations,locItems:{}};
+  locItems.forEach(li=>{
+    if(!DB.locItems[li.location_id])DB.locItems[li.location_id]=[];
+    DB.locItems[li.location_id].push({
+      sku:li.sku,
+      expected_unit1:li.expected_unit1,expected_unit2:li.expected_unit2,
+      expected_unit3:li.expected_unit3,expected_unit4:li.expected_unit4
+    });
+  });
+  SO_CACHE={};
+  soResults.forEach(r=>{
+    if(!SO_CACHE[r.location_id])SO_CACHE[r.location_id]={empId:r.employee_id,results:{},notes:r.notes,submitted:false};
+    SO_CACHE[r.location_id].results[r.sku]={qty1:r.qty_unit1,qty2:r.qty_unit2,qty3:r.qty_unit3,qty4:r.qty_unit4,actual_qty:r.actual_qty};
+    if(r.employee_id)SO_CACHE[r.location_id].empId=r.employee_id;
+    if(r.submitted)SO_CACHE[r.location_id].submitted=true;
+  });
+  if(!currentBranch&&branches.length)currentBranch=branches[0].id;
+}
+function setLoad(m){document.getElementById('load-text').textContent=m;}
+function hideLoad(){document.getElementById('loading').style.display='none';document.getElementById('main-nav').style.display='';}
+function updateConn(ok){document.getElementById('conn-dot').className='conn-dot '+(ok?'conn-ok':'conn-err');document.getElementById('conn-text').textContent=ok?'Terhubung ke Supabase':'Tidak terhubung';}
+function showSync(){document.getElementById('syncing').classList.add('on');}
+function hideSync(){document.getElementById('syncing').classList.remove('on');}
+
+// ── NAV ──
+function go(p){
+  document.querySelectorAll('.page').forEach(e=>e.classList.remove('on'));
+  document.querySelectorAll('.ntab').forEach(e=>e.classList.remove('on'));
+  document.getElementById('page-'+p).classList.add('on');
+  [...document.querySelectorAll('.ntab')].find(e=>e.textContent.trim().toLowerCase().startsWith(p[0])).classList.add('on');
+  if(p==='monitor')renderMonitor();
+  if(p==='admin'){renderAdmLocs();renderAdmEmps();updateConn(true);}
+  if(p==='input'){renderLocGrid();document.getElementById('form-panel').style.display='none';}
+}
+function mTab(i,el){document.querySelectorAll('#mon-tabs .ptab').forEach(e=>e.classList.remove('on'));el.classList.add('on');['mon-loc','mon-emp','mon-log'].forEach((id,j)=>document.getElementById(id).style.display=j===i?'':'none');}
+function aTab(i,el){document.querySelectorAll('#page-admin .ptab').forEach(e=>e.classList.remove('on'));el.classList.add('on');['adm-upload','adm-items','adm-locs','adm-emps'].forEach((id,j)=>document.getElementById(id).style.display=j===i?'':'none');if(i===1)renderAdmItems();if(i===2)renderAdmLocs();if(i===3)renderAdmEmps();}
+
+// ── BRANCH ──
+function renderBranchSel(){const s=document.getElementById('branch-sel');s.innerHTML=DB.branches.map(b=>`<option value="${b.id}">${b.name}</option>`).join('');s.value=currentBranch;}
+function onBranchChange(){currentBranch=document.getElementById('branch-sel').value;selectedLoc=null;document.getElementById('form-panel').style.display='none';renderLocGrid();}
+function branchLocs(){return DB.locations.filter(l=>l.branch_id===currentBranch);}
+function branchEmps(){return DB.employees.filter(e=>!e.branch_id||e.branch_id===currentBranch);}
+function getLocItems(locId){return DB.locItems[locId]||[];}
+
+// ── LOC GRID ──
+function renderLocGrid(){
+  const locs=branchLocs();const grid=document.getElementById('loc-grid');
+  if(!locs.length){grid.innerHTML='<div style="grid-column:1/-1;text-align:center;color:var(--tx3);padding:40px 20px;font-size:13px"><div style="font-size:32px;margin-bottom:10px">📭</div>Belum ada lokasi.<br><span style="color:var(--ac2)">Upload data di Admin</span> atau load demo.</div>';return;}
+  grid.innerHTML=locs.map(loc=>{
+    const items=getLocItems(loc.id);const so=SO_CACHE[loc.id];
+    const total=items.length;
+    const done=so?items.filter(li=>{const r=so.results[li.sku];return r&&(r.qty1!=null||r.qty2!=null||r.qty3!=null||r.qty4!=null);}).length:0;
+    const pct=total?Math.round(done/total*100):0;
+    let badge=`<span class="loc-badge lb-todo">Belum</span>`,barCls='mf-x';
+    if(so?.submitted){badge=`<span class="loc-badge lb-done">✓ Selesai</span>`;barCls='mf-g';}
+    else if(done>0){badge=`<span class="loc-badge lb-wip">Proses</span>`;barCls='mf-a';}
+    return`<div class="loc-card${selectedLoc===loc.id?' sel':''}" onclick="selectLoc('${loc.id}')">
+      ${badge}<span class="loc-icon">${loc.icon||'📦'}</span>
+      <div class="loc-name">${loc.name}</div>
+      <div class="loc-meta">${done}/${total} item</div>
+      <div class="mbar"><div class="mbar-fill ${barCls}" style="width:${pct}%"></div></div>
+      <div class="loc-prog-bar" style="width:${pct}%"></div>
+    </div>`;
+  }).join('');
+}
+function selectLoc(id){selectedLoc=id;renderLocGrid();renderForm();}
+
+function renderForm(){
+  const loc=DB.locations.find(l=>l.id===selectedLoc);if(!loc)return;
+  const items=getLocItems(loc.id);const so=SO_CACHE[selectedLoc]||{};
+  const fp=document.getElementById('form-panel');fp.style.display='block';
+  document.getElementById('fp-title').textContent=(loc.icon||'📦')+' '+loc.name;
+  document.getElementById('fp-sub').textContent=`${items.length} item · ${soDate}`;
+  const emps=branchEmps();
+  const es=document.getElementById('emp-sel');
+  es.innerHTML='<option value="">— Pilih nama kamu —</option>'+emps.map(e=>`<option value="${e.id}">${e.name}</option>`).join('');
+  if(so.empId)es.value=so.empId;
+  document.getElementById('notes-inp').value=so.notes||'';
+  document.getElementById('item-search').value='';
+  renderItemList(items,so);
+  fp.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+let itemQ='';
+function filterItems(){itemQ=document.getElementById('item-search').value.toLowerCase();renderItemList(getLocItems(selectedLoc),SO_CACHE[selectedLoc]||{});}
+
+function renderItemList(locItems,so){
+  const results=so.results||{};
+  const filtered=itemQ?locItems.filter(li=>{const i=DB.items.find(x=>x.sku===li.sku);return i&&(i.name.toLowerCase().includes(itemQ)||i.sku.toLowerCase().includes(itemQ));}):locItems;
+  const done=locItems.filter(li=>{const r=results[li.sku];return r&&(r.qty1!=null||r.qty2!=null||r.qty3!=null||r.qty4!=null);}).length;
+  document.getElementById('item-ctr').textContent=`${done}/${locItems.length}`;
+  document.getElementById('items-list').innerHTML=filtered.map(li=>{
+    const item=DB.items.find(i=>i.sku===li.sku);if(!item)return'';
+    const units=getItemUnits(item);
+    const r=results[li.sku]||{};
+    const vals=[r.qty1,r.qty2,r.qty3,r.qty4];
+    const exps=[li.expected_unit1,li.expected_unit2,li.expected_unit3,li.expected_unit4];
+    const totalActual=calcTotal(item,r.qty1,r.qty2,r.qty3,r.qty4);
+    const totalExp=calcExpected(item,li);
+    const hasAny=vals.some(v=>v!=null);
+    let cls='';
+    if(hasAny)cls=totalExp>0?(totalActual===totalExp?' ok':' diff'):' partial';
+    const totalLabel=hasAny?`${totalActual} ${item.base_unit_label||item.base_unit||'pcs'}`:'—';
+    const unitRows=units.map((u,i)=>{
+      const val=vals[i]!=null?vals[i]:'';
+      const exp=exps[i];
+      return`<div class="unit-row">
+        <div class="unit-label-wrap">
+          <div class="unit-label">${u.name}</div>
+          <div class="unit-conv">= ${u.qpb} ${item.base_unit_label||item.base_unit||'pcs'}</div>
+        </div>
+        <div class="unit-exp">${exp!=null&&exp>0?`Exp: <b style="color:var(--tx)">${exp}</b>`:''}</div>
+        <div class="qty-wrap">
+          <button class="qbtn" onclick="adjQty('${li.sku}',${i},-1)">−</button>
+          <input class="qinp" type="number" id="qty-${li.sku}-${i}" value="${val}" min="0" placeholder="0" oninput="updQty('${li.sku}')">
+          <button class="qbtn" onclick="adjQty('${li.sku}',${i},1)">+</button>
+        </div>
+      </div>`;
+    }).join('');
+    return`<div class="item-block${cls}" id="block-${li.sku}">
+      <div class="item-header">
+        <div class="item-dot"></div>
+        <div class="item-name-wrap">
+          <div class="item-name">${item.name}</div>
+          <div class="item-sku">${item.sku} · ${item.base_unit_label||item.base_unit||'—'}</div>
+        </div>
+        <div class="item-total-badge">${totalLabel}</div>
+      </div>
+      <div class="unit-rows">${unitRows}</div>
+    </div>`;
+  }).join('');
+}
+
+function adjQty(sku,idx,d){
+  const inp=document.getElementById(`qty-${sku}-${idx}`);
+  if(!inp)return;
+  inp.value=Math.max(0,(parseInt(inp.value)||0)+d);
+  updQty(sku);
+}
+function updQty(sku){
+  if(!SO_CACHE[selectedLoc])SO_CACHE[selectedLoc]={results:{}};
+  if(!SO_CACHE[selectedLoc].results)SO_CACHE[selectedLoc].results={};
+  const item=DB.items.find(i=>i.sku===sku);if(!item)return;
+  const units=getItemUnits(item);
+  const vals=units.map((_,i)=>{const inp=document.getElementById(`qty-${sku}-${i}`);return inp&&inp.value!==''?parseInt(inp.value):null;});
+  const total=calcTotal(item,vals[0],vals[1],vals[2],vals[3]);
+  SO_CACHE[selectedLoc].results[sku]={qty1:vals[0],qty2:vals[1],qty3:vals[2],qty4:vals[3],actual_qty:total};
+  const block=document.getElementById('block-'+sku);
+  if(block){
+    const li=getLocItems(selectedLoc).find(l=>l.sku===sku);
+    const exp=li?calcExpected(item,li):0;
+    const hasAny=vals.some(v=>v!=null);
+    block.className='item-block'+(hasAny?(exp>0?(total===exp?' ok':' diff'):' partial'):'');
+    const badge=block.querySelector('.item-total-badge');
+    if(badge)badge.textContent=hasAny?`${total} ${item.base_unit_label||item.base_unit||'pcs'}`:'—';
+  }
+  const locItems=getLocItems(selectedLoc);
+  const done=locItems.filter(li=>{const r=SO_CACHE[selectedLoc]?.results?.[li.sku];return r&&(r.qty1!=null||r.qty2!=null||r.qty3!=null||r.qty4!=null);}).length;
+  document.getElementById('item-ctr').textContent=`${done}/${locItems.length}`;
+  renderLocGrid();updateBadge();
+}
+
+async function submitSO(){
+  const empId=document.getElementById('emp-sel').value;
+  if(!empId){toast('Pilih nama karyawan dulu!','err');return;}
+  const loc=DB.locations.find(l=>l.id===selectedLoc);
+  const locItems=getLocItems(selectedLoc);
+  const so=SO_CACHE[selectedLoc]||{results:{}};
+  const notes=document.getElementById('notes-inp').value;
+  const btn=document.getElementById('submit-btn');
+  btn.disabled=true;btn.textContent='Menyimpan...';showSync();
+  try{
+    const rows=locItems.map(li=>{
+      const item=DB.items.find(i=>i.sku===li.sku);
+      const r=so.results[li.sku]||{};
+      const total=item?calcTotal(item,r.qty1,r.qty2,r.qty3,r.qty4):null;
+      const exp=item?calcExpected(item,li):null;
+      return{location_id:selectedLoc,sku:li.sku,employee_id:empId,
+        qty_unit1:r.qty1??null,qty_unit2:r.qty2??null,qty_unit3:r.qty3??null,qty_unit4:r.qty4??null,
+        actual_qty:total,expected_qty:exp,notes,submitted:true,so_date:soDate};
+    });
+    await sbUpsert('so_results',rows);
+    const emp=DB.employees.find(e=>e.id===empId);
+    const done=locItems.filter(li=>{const r=so.results[li.sku];return r&&(r.qty1!=null||r.qty2!=null||r.qty3!=null||r.qty4!=null);}).length;
+    await sbPost('activity_log',{employee_id:empId,employee_name:emp?.name||empId,action:'submit_so',branch_id:currentBranch,detail:`Submit SO ${loc.name} — ${done}/${locItems.length} item`});
+    SO_CACHE[selectedLoc]={empId,results:so.results,notes,submitted:true};
+    renderLocGrid();updateBadge();
+    toast(`✓ SO ${loc.name} tersimpan!`,'ok');
+  }catch(e){toast('Gagal: '+e.message,'err');console.error(e);}
+  finally{btn.disabled=false;btn.textContent='✓ Simpan Stock Opname';hideSync();}
+}
+
+// ── MONITOR ──
+async function renderMonitor(){
+  try{
+    showSync();
+    const[soResults,logs]=await Promise.all([sbGet('so_results',`so_date=eq.${soDate}&select=*`),sbGet('activity_log','order=created_at.desc&limit=40')]);
+    SO_CACHE={};
+    soResults.forEach(r=>{
+      if(!SO_CACHE[r.location_id])SO_CACHE[r.location_id]={empId:r.employee_id,results:{},notes:r.notes,submitted:false};
+      SO_CACHE[r.location_id].results[r.sku]={qty1:r.qty_unit1,qty2:r.qty_unit2,qty3:r.qty_unit3,qty4:r.qty_unit4,actual_qty:r.actual_qty};
+      if(r.employee_id)SO_CACHE[r.location_id].empId=r.employee_id;
+      if(r.submitted)SO_CACHE[r.location_id].submitted=true;
+    });
+    renderMonitorUI(logs);
+  }catch(e){toast('Gagal refresh data','err');}
+  finally{hideSync();}
+}
+
+function renderMonitorUI(logs){
+  document.getElementById('mon-date').textContent=new Date().toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const locs=branchLocs();
+  let totalItems=0,counted=0,disc=0,submitted=0;
+  locs.forEach(loc=>{
+    const items=getLocItems(loc.id);const so=SO_CACHE[loc.id];
+    totalItems+=items.length;if(so?.submitted)submitted++;
+    items.forEach(li=>{
+      const item=DB.items.find(i=>i.sku===li.sku);const r=so?.results?.[li.sku];
+      if(r&&(r.qty1!=null||r.qty2!=null||r.qty3!=null||r.qty4!=null)){counted++;
+        if(item&&r.actual_qty!=null){const exp=calcExpected(item,li);if(exp>0&&r.actual_qty!==exp)disc++;}}
+    });
+  });
+  const pct=totalItems?Math.round(counted/totalItems*100):0;
+  document.getElementById('stat-grid').innerHTML=`
+    <div class="stat"><div class="stat-val sv-b">${locs.length}</div><div class="stat-lbl">Total Lokasi</div></div>
+    <div class="stat"><div class="stat-val sv-g">${submitted}</div><div class="stat-lbl">Selesai</div></div>
+    <div class="stat"><div class="stat-val" style="color:var(--tx)">${counted}/${totalItems}</div><div class="stat-lbl">Item Tercatat</div></div>
+    <div class="stat"><div class="stat-val sv-a">${disc}</div><div class="stat-lbl">Selisih</div></div>`;
+  document.getElementById('prog-pct').textContent=pct+'%';
+  document.getElementById('prog-fill').style.width=pct+'%';
+  updateBadge();
+
+  document.getElementById('mon-loc').innerHTML='<div class="gap-stack" style="margin-top:10px">'+locs.map(loc=>{
+    const items=getLocItems(loc.id);const so=SO_CACHE[loc.id];
+    const total=items.length;
+    const done=items.filter(li=>{const r=so?.results?.[li.sku];return r&&(r.qty1!=null||r.qty2!=null||r.qty3!=null||r.qty4!=null);}).length;
+    const locPct=total?Math.round(done/total*100):0;
+    const emp=so?.empId?DB.employees.find(e=>e.id===so.empId):null;
+    let pill=`<span class="pill pill-todo">Belum</span>`,barCls='mf-x';
+    if(so?.submitted){pill=`<span class="pill pill-done">✓ Selesai</span>`;barCls='mf-g';}
+    else if(done>0){pill=`<span class="pill pill-wip">Proses</span>`;barCls='mf-a';}
+    const detailRows=items.map(li=>{
+      const item=DB.items.find(i=>i.sku===li.sku);if(!item)return'';
+      const r=so?.results?.[li.sku];const units=getItemUnits(item);
+      const vals=[r?.qty1,r?.qty2,r?.qty3,r?.qty4];
+      const hasAny=vals.some(v=>v!=null);
+      const totalActual=hasAny?calcTotal(item,r?.qty1,r?.qty2,r?.qty3,r?.qty4):null;
+      const totalExp=calcExpected(item,li);
+      let cell=`<td style="color:var(--tx3)">Belum</td>`;
+      if(hasAny){
+        const parts=units.map((u,i)=>vals[i]!=null&&vals[i]>0?`${vals[i]} ${u.name}`:'').filter(Boolean).join(' + ')||'0';
+        const ok=totalExp===0||totalActual===totalExp;
+        cell=`<td style="color:${ok?'var(--gr)':'var(--am)'};font-weight:600;font-size:11px">${parts}<br><span style="font-family:var(--fm);font-size:10px">= ${totalActual} ${item.base_unit_label||item.base_unit}${totalExp>0?' (exp:'+totalExp+')':''}</span></td>`;
+      }
+      return`<tr><td>${item.name}</td><td style="font-family:var(--fm);color:var(--tx3);font-size:10px">${item.sku}</td>${cell}</tr>`;
+    }).join('');
+    return`<div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+        <span style="font-weight:700;font-size:14px">${loc.icon||'📦'} ${loc.name}</span>${pill}
+      </div>
+      <div style="font-size:11px;color:var(--tx2);margin-bottom:8px">${emp?`Dikerjakan: <b style="color:var(--tx)">${emp.name}</b>`:'<span style="color:var(--tx3)">Belum ada karyawan</span>'}${so?.notes?` · <i style="color:var(--tx3)">"${so.notes}"</i>`:''}</div>
+      <div class="mbar"><div class="mbar-fill ${barCls}" style="width:${locPct}%"></div></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:7px">
+        <span style="font-size:11px;color:var(--tx3);font-family:var(--fm)">${done}/${total} · ${locPct}%</span>
+        <button style="font-size:11px;color:var(--ac2);background:none;border:none;cursor:pointer;font-family:var(--ff);font-weight:600" onclick="toggleDetail(this)">Detail ▾</button>
+      </div>
+      <div class="loc-detail" style="display:none;margin-top:10px;border-top:1px solid var(--bd);padding-top:10px">
+        <table class="tbl" style="min-width:0"><thead><tr><th>Nama</th><th>SKU</th><th>Hasil</th></tr></thead><tbody>${detailRows}</tbody></table>
+      </div>
+    </div>`;
+  }).join('')+'</div>';
+
+  const emps=branchEmps();
+  document.getElementById('mon-emp').innerHTML='<div class="gap-stack" style="margin-top:10px">'+emps.map(emp=>{
+    const subm=DB.locations.filter(l=>l.branch_id===currentBranch&&SO_CACHE[l.id]?.submitted&&SO_CACHE[l.id]?.empId===emp.id).length;
+    const totalLoc=DB.locations.filter(l=>l.branch_id===currentBranch).length;
+    const ini=emp.name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+    const colors=['#4f8ef7','#10b981','#f59e0b','#8b5cf6','#f43f5e','#14b8a6'];
+    const ci=(emp.name.charCodeAt(0)||0)%colors.length;
+    return`<div class="emp-card"><div class="emp-av" style="background:${colors[ci]}22;color:${colors[ci]}">${ini}</div><div class="emp-info"><div class="emp-name">${emp.name}</div><div class="emp-meta">${emp.role||'Staff'}</div></div><div class="emp-stat"><div class="emp-num" style="color:${subm>0?'var(--gr)':'var(--tx3)'}">${subm}<span style="font-size:13px;color:var(--tx3)">/${totalLoc}</span></div><div class="emp-num-lbl">selesai</div></div></div>`;
+  }).join('')+'</div>';
+
+  const logEl=document.getElementById('mon-log');
+  if(!logs?.length){logEl.innerHTML='<div class="empty"><div class="empty-icon">📋</div>Belum ada aktivitas hari ini.</div>';return;}
+  logEl.innerHTML='<div style="padding:10px 14px 0">'+logs.map(l=>{
+    const t=new Date(l.created_at).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+    return`<div class="log-item"><div class="log-top"><span class="log-who">${l.employee_name||'—'}</span><span class="log-time">${t}</span></div><div class="log-text">${l.detail||l.action}</div></div>`;
+  }).join('')+'</div>';
+}
+function toggleDetail(btn){const d=btn.closest('.card').querySelector('.loc-detail');const o=d.style.display==='none';d.style.display=o?'':'none';btn.textContent=o?'Tutup ▴':'Detail ▾';}
+
+// ── ADMIN ──
+function renderAdmItems(){
+  const q=(document.getElementById('adm-srch')?.value||'').toLowerCase();
+  const items=q?DB.items.filter(i=>i.name.toLowerCase().includes(q)||i.sku.toLowerCase().includes(q)):DB.items;
+  const tbody=document.getElementById('adm-items-body');if(!tbody)return;
+  tbody.innerHTML=items.slice(0,200).map(i=>{
+    const units=getItemUnits(i);const uStr=units.map(u=>`${u.name}(×${u.qpb})`).join(' · ');
+    return`<tr><td style="font-family:var(--fm);font-size:11px;color:var(--tx3)">${i.sku}</td><td><div style="font-weight:500">${i.name}</div><div style="font-size:10px;color:var(--tx3)">${i.category||''}</div></td><td style="color:var(--tl);font-size:11px">${i.base_unit_label||i.unit||'—'}</td><td style="font-size:11px;color:var(--tx2)">${uStr}</td></tr>`;
+  }).join('');
+  if(!items.length)tbody.innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--tx3);padding:30px">Tidak ada data barang.</td></tr>';
+}
+function renderAdmLocs(){
+  const locs=branchLocs();const el=document.getElementById('adm-locs-list');if(!el)return;
+  el.innerHTML=locs.length?locs.map(loc=>{
+    const items=getLocItems(loc.id);
+    return`<div class="card" style="display:flex;align-items:center;gap:12px">
+      <span style="font-size:26px">${loc.icon||'📦'}</span>
+      <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:13px">${loc.name}</div><div style="font-size:11px;color:var(--tx2);margin-top:3px">${items.length} barang terdaftar</div></div>
+      <button class="btn btn-ghost" style="padding:7px 11px;font-size:11px;flex-shrink:0" onclick="openAssign('${loc.id}')">Assign Barang</button>
+    </div>`;
+  }).join(''):'<div class="empty"><div class="empty-icon">📍</div>Belum ada lokasi.</div>';
+}
+function renderAdmEmps(){
+  const emps=branchEmps();const el=document.getElementById('adm-emps-list');if(!el)return;
+  const colors=['#4f8ef7','#10b981','#f59e0b','#8b5cf6','#f43f5e','#14b8a6'];
+  el.innerHTML=emps.length?emps.map(emp=>{
+    const ci=(emp.name.charCodeAt(0)||0)%colors.length;
+    const ini=emp.name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+    return`<div class="emp-card"><div class="emp-av" style="background:${colors[ci]}22;color:${colors[ci]}">${ini}</div><div class="emp-info"><div class="emp-name">${emp.name}</div><div class="emp-meta">${emp.role||'Staff'}</div></div><span class="pill pill-done">Aktif</span></div>`;
+  }).join(''):'<div class="empty"><div class="empty-icon">👤</div>Belum ada karyawan.</div>';
+}
+
+// ── ASSIGN (4 UNIT) ──
+function openAssign(locId){
+  const loc=DB.locations.find(l=>l.id===locId);
+  openModal(`Assign Barang: ${loc?.name}`,`
+    <p style="font-size:12px;color:var(--tx2);margin-bottom:12px">Centang barang di lokasi ini, set qty ekspektasi per satuan.</p>
+    <div class="sbar" style="margin-bottom:10px"><span style="color:var(--tx3)">⌕</span><input placeholder="Cari barang..." id="assign-q" oninput="renderAssignList('${locId}')"></div>
+    <div id="assign-list" style="max-height:52vh;overflow-y:auto;display:flex;flex-direction:column;gap:8px"></div>
+    <div style="margin-top:14px;display:flex;gap:8px">
+      <button class="btn btn-primary" style="flex:1" onclick="saveAssign('${locId}')">Simpan</button>
+      <button class="btn btn-ghost" onclick="closeModal()">Batal</button>
+    </div>`);
+  renderAssignList(locId);
+}
+function renderAssignList(locId){
+  const loc=DB.locations.find(l=>l.id===locId);
+  const branch=DB.branches.find(b=>b.id===loc?.branch_id);
+  const q=(document.getElementById('assign-q')?.value||'').toLowerCase();
+  let items=DB.items.filter(i=>i.all_branches||!branch||(i.branch_names&&i.branch_names.split(',').map(x=>x.trim()).includes(branch.name)));
+  if(q)items=items.filter(i=>i.name.toLowerCase().includes(q)||i.sku.toLowerCase().includes(q));
+  const current=DB.locItems[locId]||[];
+  const container=document.getElementById('assign-list');if(!container)return;
+  container.innerHTML=items.map(item=>{
+    const cur=current.find(c=>c.sku===item.sku);const checked=!!cur;
+    const units=getItemUnits(item);
+    const expVals=[cur?.expected_unit1??'',cur?.expected_unit2??'',cur?.expected_unit3??'',cur?.expected_unit4??''];
+    const expInputs=units.map((u,i)=>`<div class="assign-exp-col"><span class="assign-exp-lbl">${u.name}</span><input type="number" class="assign-exp-inp" id="exp-${item.sku}-${i}" value="${expVals[i]}" placeholder="—" min="0"></div>`).join('');
+    return`<div class="assign-item">
+      <div style="display:flex;align-items:center;gap:10px">
+        <input type="checkbox" id="chk-${item.sku}" ${checked?'checked':''} onchange="toggleExpRow('${item.sku}')" style="width:16px;height:16px;accent-color:var(--ac);cursor:pointer;flex-shrink:0">
+        <label for="chk-${item.sku}" style="flex:1;cursor:pointer">
+          <div style="font-size:13px;font-weight:500">${item.name}</div>
+          <div style="font-size:10px;color:var(--tx3);font-family:var(--fm)">${item.sku} · Dasar: ${item.base_unit_label||item.base_unit||'—'}</div>
+        </label>
+      </div>
+      <div class="assign-exp-row" id="exprow-${item.sku}" style="${checked?'display:flex':'display:none'}">
+        <div style="font-size:10px;color:var(--tx3);white-space:nowrap;align-self:center;padding-right:4px">Exp:</div>
+        ${expInputs}
+      </div>
+    </div>`;
+  }).join('');
+}
+function toggleExpRow(sku){const chk=document.getElementById('chk-'+sku);const row=document.getElementById('exprow-'+sku);if(row)row.style.display=chk?.checked?'flex':'none';}
+async function saveAssign(locId){
+  const loc=DB.locations.find(l=>l.id===locId);
+  const branch=DB.branches.find(b=>b.id===loc?.branch_id);
+  const items=DB.items.filter(i=>i.all_branches||!branch||(i.branch_names&&i.branch_names.split(',').map(x=>x.trim()).includes(branch.name)));
+  const selected=items.filter(i=>document.getElementById('chk-'+i.sku)?.checked);
+  showSync();
+  try{
+    await sbDelete('location_items',`location_id=eq.${locId}`);
+    if(selected.length){
+      const rows=selected.map(item=>{
+        const units=getItemUnits(item);
+        const ge=(i)=>{const v=document.getElementById(`exp-${item.sku}-${i}`)?.value;return v!==''&&!isNaN(parseInt(v))?parseInt(v):null;};
+        return{location_id:locId,sku:item.sku,
+          expected_unit1:units[0]?ge(0):null,expected_unit2:units[1]?ge(1):null,
+          expected_unit3:units[2]?ge(2):null,expected_unit4:units[3]?ge(3):null};
+      });
+      await sbPost('location_items',rows);
+    }
+    DB.locItems[locId]=selected.map(item=>{
+      const units=getItemUnits(item);
+      const ge=(i)=>{const v=document.getElementById(`exp-${item.sku}-${i}`)?.value;return v!==''&&!isNaN(parseInt(v))?parseInt(v):null;};
+      return{sku:item.sku,expected_unit1:units[0]?ge(0):null,expected_unit2:units[1]?ge(1):null,expected_unit3:units[2]?ge(2):null,expected_unit4:units[3]?ge(3):null};
+    });
+    closeModal();renderLocGrid();renderAdmLocs();
+    toast(`✓ ${selected.length} barang di-assign ke ${loc?.name}`,'ok');
+  }catch(e){toast('Gagal: '+e.message,'err');}
+  finally{hideSync();}
+}
+
+// ── ADD LOC / EMP ──
+const ICONS=['🏭','📦','🥤','🍪','🧊','🏪','🛒','📋','🔧','🎁','🧴','🍞','🥩','🧹','💊','📱','🔌','🏷','🎀','🌡'];
+function openAddLoc(){openModal('Tambah Lokasi',`<div class="fg"><label class="label">Nama Lokasi</label><input class="inp" id="new-loc-name" placeholder="cth: Gudang A, Rak RTG..."></div><div class="fg"><label class="label">Pilih Icon</label><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">${ICONS.map(ic=>`<button class="icon-btn" onclick="pickIcon(this,'${ic}')">${ic}</button>`).join('')}</div><input type="hidden" id="new-loc-icon" value="📦"></div><button class="btn btn-primary btn-full" onclick="saveNewLoc()">Tambah Lokasi</button>`);}
+function pickIcon(btn,ic){document.querySelectorAll('.icon-btn').forEach(b=>b.classList.remove('sel-icon'));btn.classList.add('sel-icon');document.getElementById('new-loc-icon').value=ic;}
+async function saveNewLoc(){
+  const name=document.getElementById('new-loc-name')?.value.trim();const icon=document.getElementById('new-loc-icon')?.value||'📦';
+  if(!name){toast('Isi nama lokasi!','err');return;}showSync();
+  try{const id='LOC-'+Date.now();const res=await sbPost('locations',{id,branch_id:currentBranch,name,icon,sort_order:99});DB.locations.push(res[0]||{id,branch_id:currentBranch,name,icon,sort_order:99});closeModal();renderLocGrid();renderAdmLocs();toast('✓ Lokasi ditambahkan','ok');}
+  catch(e){toast('Gagal: '+e.message,'err');}finally{hideSync();}
+}
+function openAddEmp(){openModal('Tambah Karyawan',`<div class="fg"><label class="label">ID Karyawan</label><input class="inp" id="new-emp-id" placeholder="cth: EMP010"></div><div class="fg"><label class="label">Nama Lengkap</label><input class="inp" id="new-emp-name" placeholder="Nama lengkap"></div><div class="fg"><label class="label">Jabatan</label><input class="inp" id="new-emp-role" placeholder="cth: Staff Gudang, Kasir..."></div><div class="fg"><label class="label">Cabang</label><select class="inp" id="new-emp-branch"><option value="">Semua Cabang</option>${DB.branches.map(b=>`<option value="${b.id}">${b.name}</option>`).join('')}</select></div><button class="btn btn-primary btn-full" onclick="saveNewEmp()">Tambah Karyawan</button>`);}
+async function saveNewEmp(){
+  const id=document.getElementById('new-emp-id')?.value.trim();const name=document.getElementById('new-emp-name')?.value.trim();
+  if(!id||!name){toast('ID dan Nama wajib!','err');return;}showSync();
+  try{const res=await sbPost('employees',{id,name,role:document.getElementById('new-emp-role')?.value||'Staff',branch_id:document.getElementById('new-emp-branch')?.value||null,active:true});DB.employees.push(res[0]||{id,name});closeModal();renderAdmEmps();toast('✓ Karyawan ditambahkan','ok');}
+  catch(e){toast('Gagal: '+e.message,'err');}finally{hideSync();}
+}
+
+// ── EXCEL UPLOAD (4 UNIT) ──
+// Kolom Excel: SKU(0),Nama(1),Kat(2),AllBranch(3),SatDasar(4),LabelDasar(5),
+//   Sat1Nama(6),Sat1Isi(7),Sat2Nama(8),Sat2Isi(9),
+//   Sat3Nama(10),Sat3Isi(11),Sat4Nama(12),Sat4Isi(13),HargaPokok(14),Ket(15)
+function handleDrop(e){e.preventDefault();document.getElementById('drop-zone').classList.remove('drag');const f=e.dataTransfer.files[0];if(f)handleFile(f);}
+function handleFile(file){if(!file?.name.endsWith('.xlsx')){toast('Pilih file .xlsx!','err');return;}const reader=new FileReader();reader.onload=e=>{try{const wb=XLSX.read(e.target.result,{type:'binary'});parseAndUpload(wb);}catch(err){toast('Error: '+err.message,'err');}};reader.readAsBinaryString(file);}
+
+async function parseAndUpload(wb){
+  showSync();let stats={items:0,emps:0,branches:0,locs:0};
+  try{
+    const ws1=wb.Sheets['Master Barang'];
+    if(ws1){
+      const rows=XLSX.utils.sheet_to_json(ws1,{header:1,defval:''});
+      const hRow=Math.max(0,rows.findIndex(r=>String(r[0]).toUpperCase().includes('SKU')));
+      const newItems=[];
+      for(let i=hRow+1;i<rows.length;i++){
+        const r=rows[i];if(!r[0]||!r[1])continue;
+        newItems.push({
+          sku:String(r[0]).trim(),name:String(r[1]).trim(),category:String(r[2]||'').trim(),
+          all_branches:String(r[3]||'YA').toUpperCase()==='YA',
+          base_unit:String(r[4]||'pcs').trim(),base_unit_label:String(r[5]||r[4]||'pcs').trim(),
+          unit1_name:r[6]?String(r[6]).trim():null,unit1_qty:r[7]?parseFloat(r[7]):null,
+          unit2_name:r[8]?String(r[8]).trim():null,unit2_qty:r[9]?parseFloat(r[9]):null,
+          unit3_name:r[10]?String(r[10]).trim():null,unit3_qty:r[11]?parseFloat(r[11]):null,
+          unit4_name:r[12]?String(r[12]).trim():null,unit4_qty:r[13]?parseFloat(r[13]):null,
+          price:r[14]||0,notes:String(r[15]||'').trim(),branch_names:''
+        });
+      }
+      if(newItems.length){await sbUpsert('items',newItems);stats.items=newItems.length;DB.items=[...DB.items.filter(x=>!newItems.some(n=>n.sku===x.sku)),...newItems];}
+    }
+    const ws3=wb.Sheets['Cabang & Lokasi'];
+    if(ws3){
+      const rows=XLSX.utils.sheet_to_json(ws3,{header:1,defval:''});
+      const hRow=Math.max(0,rows.findIndex(r=>String(r[0]).includes('Kode Cabang')));
+      const brMap={},newLocs=[];const icons=['🏭','📦','🥤','🍪','🧊','🏪','🛒','📋'];
+      for(let i=hRow+1;i<rows.length;i++){
+        const r=rows[i];if(!r[0]&&!r[1])continue;
+        const bId=String(r[0]||'').trim(),bName=String(r[1]||'').trim();
+        if(bId&&bName)brMap[bId]={id:bId,name:bName,address:String(r[2]||'').trim()};
+        if(r[3]&&r[4]){const lId=String(r[3]).trim();if(!newLocs.find(l=>l.id===lId))newLocs.push({id:lId,branch_id:bId||Object.keys(brMap)[0]||'',name:String(r[4]).trim(),icon:icons[newLocs.length%icons.length],sort_order:parseInt(r[6])||99});}
+      }
+      const brArr=Object.values(brMap);
+      if(brArr.length){await sbUpsert('branches',brArr);stats.branches=brArr.length;DB.branches=[...DB.branches.filter(b=>!brMap[b.id]),...brArr];}
+      if(newLocs.length){await sbUpsert('locations',newLocs);stats.locs=newLocs.length;DB.locations=[...DB.locations.filter(l=>!newLocs.some(n=>n.id===l.id)),...newLocs];}
+      if(!currentBranch&&brArr.length)currentBranch=brArr[0].id;
+    }
+    const ws2=wb.Sheets['Master Karyawan'];
+    if(ws2){
+      const rows=XLSX.utils.sheet_to_json(ws2,{header:1,defval:''});
+      const hRow=Math.max(0,rows.findIndex(r=>String(r[0]).toUpperCase().includes('ID')));
+      const newEmps=[];
+      for(let i=hRow+1;i<rows.length;i++){
+        const r=rows[i];if(!r[0]||!r[1])continue;if(String(r[6]).toUpperCase()==='TIDAK')continue;
+        const brMatch=DB.branches.find(b=>b.name===String(r[3]||'').trim());
+        newEmps.push({id:String(r[0]).trim(),name:String(r[1]).trim(),role:String(r[2]||'').trim(),branch_id:brMatch?.id||null,phone:String(r[4]||'').trim(),active:true});
+      }
+      if(newEmps.length){await sbUpsert('employees',newEmps);stats.emps=newEmps.length;DB.employees=[...DB.employees.filter(e=>!newEmps.some(n=>n.id===e.id)),...newEmps];}
+    }
+    renderBranchSel();renderLocGrid();renderAdmItems();renderAdmLocs();renderAdmEmps();
+    document.getElementById('upload-result').innerHTML=`<div class="card" style="border-color:var(--gr)"><div style="color:var(--gr);font-weight:700;font-size:15px;margin-bottom:10px">✓ Upload Berhasil!</div><div style="display:flex;flex-direction:column;gap:6px;font-size:13px"><div>🏪 <b>${stats.branches}</b> cabang</div><div>📦 <b>${stats.items}</b> barang</div><div>👤 <b>${stats.emps}</b> karyawan</div><div>📍 <b>${stats.locs}</b> lokasi</div></div><div style="margin-top:10px;font-size:11px;color:var(--tx2)">⚠ Jangan lupa assign barang ke lokasi di tab Lokasi</div></div>`;
+    toast(`✓ ${stats.items} barang berhasil diupload`,'ok');
+  }catch(e){toast('Gagal upload: '+e.message,'err');console.error(e);}
+  finally{hideSync();}
+}
+
+// ── DEMO DATA (4 UNIT) ──
+async function loadDemoData(){
+  showSync();
+  try{
+    const branches=[{id:'CB-A',name:'Cabang A',address:'Jl. Sudirman No.1'},{id:'CB-B',name:'Cabang B',address:'Jl. Thamrin No.5'}];
+    const items=[
+      // Gula: 250g, 500g, 1kg, 50kg(zak)
+      {sku:'GLA-001',name:'Gula Pasir',category:'Sembako',all_branches:true,base_unit:'Gram',base_unit_label:'gram',
+        unit1_name:'Zak 50kg',unit1_qty:50000,unit2_name:'1 kg',unit2_qty:1000,unit3_name:'500 gram',unit3_qty:500,unit4_name:'250 gram',unit4_qty:250,price:14000,branch_names:''},
+      // Beras: zak, kg
+      {sku:'BRS-001',name:'Beras Premium',category:'Sembako',all_branches:true,base_unit:'Kg',base_unit_label:'Kg',
+        unit1_name:'Zak 25kg',unit1_qty:25,unit2_name:'Kg',unit2_qty:1,unit3_name:null,unit3_qty:null,unit4_name:null,unit4_qty:null,price:65000,branch_names:''},
+      // Mie instan: dus, renteng 10, renteng 12 (beda produk), pcs
+      {sku:'RTG-001',name:'Mie Instan A',category:'RTG',all_branches:true,base_unit:'Pcs',base_unit_label:'Pcs',
+        unit1_name:'Dus',unit1_qty:40,unit2_name:'Renteng',unit2_qty:10,unit3_name:'Pcs',unit3_qty:1,unit4_name:null,unit4_qty:null,price:2500,branch_names:''},
+      {sku:'RTG-002',name:'Mie Instan B',category:'RTG',all_branches:true,base_unit:'Pcs',base_unit_label:'Pcs',
+        unit1_name:'Dus',unit1_qty:48,unit2_name:'Renteng',unit2_qty:12,unit3_name:'Pcs',unit3_qty:1,unit4_name:null,unit4_qty:null,price:2800,branch_names:''},
+      // Minyak: karton, botol 2L, botol 1L, botol 500ml
+      {sku:'MYK-001',name:'Minyak Goreng',category:'Sembako',all_branches:true,base_unit:'mL',base_unit_label:'mL',
+        unit1_name:'Karton',unit1_qty:24000,unit2_name:'Botol 2L',unit2_qty:2000,unit3_name:'Botol 1L',unit3_qty:1000,unit4_name:'Botol 500ml',unit4_qty:500,price:15000,branch_names:''},
+    ];
+    const employees=[
+      {id:'EMP001',name:'Ade Kurniawan',role:'Staff Gudang',branch_id:'CB-A',active:true},
+      {id:'EMP002',name:'Budi Santoso',role:'Kasir',branch_id:'CB-A',active:true},
+      {id:'EMP003',name:'Citra Dewi',role:'Staff Gudang',branch_id:'CB-B',active:true},
+      {id:'EMP004',name:'Dinda Rahayu',role:'Supervisor',branch_id:null,active:true},
+    ];
+    const locations=[
+      {id:'LOC-A01',branch_id:'CB-A',name:'Gudang Sembako',icon:'🏭',sort_order:1},
+      {id:'LOC-A02',branch_id:'CB-A',name:'Rak RTG',icon:'🍪',sort_order:2},
+      {id:'LOC-B01',branch_id:'CB-B',name:'Gudang B',icon:'📦',sort_order:1},
+    ];
+    const locItems=[
+      // Gula di gudang A: 2 zak + 3 kg + 1 500g + 4 250g
+      {location_id:'LOC-A01',sku:'GLA-001',expected_unit1:2,expected_unit2:3,expected_unit3:1,expected_unit4:4},
+      {location_id:'LOC-A01',sku:'BRS-001',expected_unit1:5,expected_unit2:3,expected_unit3:null,expected_unit4:null},
+      {location_id:'LOC-A01',sku:'MYK-001',expected_unit1:1,expected_unit2:3,expected_unit3:2,expected_unit4:5},
+      {location_id:'LOC-A02',sku:'RTG-001',expected_unit1:2,expected_unit2:5,expected_unit3:3,expected_unit4:null},
+      {location_id:'LOC-A02',sku:'RTG-002',expected_unit1:1,expected_unit2:3,expected_unit3:6,expected_unit4:null},
+      {location_id:'LOC-B01',sku:'GLA-001',expected_unit1:3,expected_unit2:2,expected_unit3:0,expected_unit4:0},
+      {location_id:'LOC-B01',sku:'BRS-001',expected_unit1:4,expected_unit2:1,expected_unit3:null,expected_unit4:null},
+    ];
+    await Promise.all([sbUpsert('branches',branches),sbUpsert('items',items)]);
+    await sbUpsert('employees',employees);
+    await sbUpsert('locations',locations);
+    for(const li of locItems)await sbUpsert('location_items',[li]);
+    DB.branches=branches;DB.items=items;DB.employees=employees;DB.locations=locations;
+    DB.locItems={};
+    locItems.forEach(li=>{if(!DB.locItems[li.location_id])DB.locItems[li.location_id]=[];DB.locItems[li.location_id].push({sku:li.sku,expected_unit1:li.expected_unit1,expected_unit2:li.expected_unit2,expected_unit3:li.expected_unit3,expected_unit4:li.expected_unit4});});
+    currentBranch='CB-A';
+    renderBranchSel();renderLocGrid();renderAdmItems();renderAdmLocs();renderAdmEmps();
+    document.getElementById('upload-result').innerHTML=`<div class="card" style="border-color:var(--gr)"><div style="color:var(--gr);font-weight:700">✓ Demo data loaded!</div><div style="font-size:12px;color:var(--tx2);margin-top:6px">5 barang dengan 4 satuan · 4 karyawan · 3 lokasi · 2 cabang<br>Contoh Gula: Zak 50kg / 1kg / 500g / 250g</div></div>`;
+    toast('✓ Demo data tersimpan!','ok');
+  }catch(e){toast('Gagal: '+e.message,'err');console.error(e);}
+  finally{hideSync();}
+}
+
+// ── EXPORT ──
+async function exportExcel(){
+  showSync();
+  try{
+    const soResults=await sbGet('so_results',`so_date=eq.${soDate}&select=*`);
+    const wbx=XLSX.utils.book_new();
+    const locs=branchLocs();const branch=DB.branches.find(b=>b.id===currentBranch);
+    const soMap={};soResults.forEach(r=>{if(!soMap[r.location_id])soMap[r.location_id]={};soMap[r.location_id][r.sku]=r;});
+    const sum=[['HASIL STOCK OPNAME'],['Cabang',branch?.name],['Tanggal',soDate],[],['Lokasi','Status','Karyawan','Item Selesai','Total Item','Selisih']];
+    locs.forEach(loc=>{
+      const items=getLocItems(loc.id);const so=soMap[loc.id]||{};
+      const empId=Object.values(so)[0]?.employee_id;const emp=empId?DB.employees.find(e=>e.id===empId):null;
+      const done=items.filter(li=>so[li.sku]?.actual_qty!=null).length;
+      const disc=items.filter(li=>{const item=DB.items.find(i=>i.sku===li.sku);const r=so[li.sku];if(!r||!item)return false;const exp=calcExpected(item,li);return exp>0&&r.actual_qty!==exp;}).length;
+      sum.push([loc.name,Object.values(so).some(r=>r.submitted)?'Selesai':done>0?'Proses':'Belum',emp?.name||'—',done,items.length,disc]);
+    });
+    XLSX.utils.book_append_sheet(wbx,XLSX.utils.aoa_to_sheet(sum),'Ringkasan');
+    locs.forEach(loc=>{
+      const items=getLocItems(loc.id);const so=soMap[loc.id]||{};
+      const rows=[['SKU','Nama Barang','Sat.Dasar','Satuan 1','Qty1','Satuan 2','Qty2','Satuan 3','Qty3','Satuan 4','Qty4','Total','Ekspektasi','Selisih','Status']];
+      items.forEach(li=>{
+        const item=DB.items.find(i=>i.sku===li.sku);if(!item)return;
+        const units=getItemUnits(item);const r=so[li.sku];
+        const vals=[r?.qty_unit1,r?.qty_unit2,r?.qty_unit3,r?.qty_unit4];
+        const actual=r?.actual_qty??'';const exp=calcExpected(item,li);const diff=actual!==''&&exp>0?actual-exp:'';
+        rows.push([li.sku,item.name,item.base_unit_label||item.base_unit,
+          units[0]?.name||'',vals[0]??'',units[1]?.name||'',vals[1]??'',
+          units[2]?.name||'',vals[2]??'',units[3]?.name||'',vals[3]??'',
+          actual,exp||'',diff,actual===''?'Belum':exp>0?(actual===exp?'OK':'Selisih'):'Tercatat']);
+      });
+      XLSX.utils.book_append_sheet(wbx,XLSX.utils.aoa_to_sheet(rows),loc.name.slice(0,31).replace(/[:\\/?*[\]]/g,''));
+    });
+    XLSX.writeFile(wbx,`SO_${branch?.name||'Cabang'}_${soDate}.xlsx`);
+    toast('✓ Excel berhasil didownload!','ok');
+  }catch(e){toast('Gagal export: '+e.message,'err');}
+  finally{hideSync();}
+}
+
+// ── UTILS ──
+function openModal(title,html){document.getElementById('modal-title-text').textContent=title;document.getElementById('modal-body').innerHTML=html;document.getElementById('modal-bg').classList.add('on');}
+function closeModal(){document.getElementById('modal-bg').classList.remove('on');}
+let toastTimer;
+function toast(msg,type='info'){const t=document.getElementById('toast');t.textContent=msg;t.className=`toast t-${type}`;setTimeout(()=>t.classList.add('on'),10);clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('on'),3500);}
+function updateBadge(){
+  let disc=0;
+  DB.locations.forEach(loc=>{const so=SO_CACHE[loc.id];if(!so)return;
+    getLocItems(loc.id).forEach(li=>{const item=DB.items.find(i=>i.sku===li.sku);const r=so.results?.[li.sku];
+      if(r&&item&&r.actual_qty!=null){const exp=calcExpected(item,li);if(exp>0&&r.actual_qty!==exp)disc++;}});
+  });
+  const b=document.getElementById('badge-disc');b.textContent=disc;b.style.display=disc>0?'inline-block':'none';
+}
+
+document.getElementById('mon-date').textContent=new Date().toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+init();
+</script>
+</body>
+</html>
